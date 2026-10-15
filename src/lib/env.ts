@@ -1,6 +1,5 @@
-// Server-only. On Cloudflare, secrets come from the Workers runtime env.
-import { env as cfEnv } from 'cloudflare:workers';
-
+// Server-only. On Vercel, secrets come from process.env (Dashboard → Settings → Environment Variables).
+// Locally, Astro loads .env automatically.
 export type AppEnv = {
   DATABASE_URL: string;
   CLOUDINARY_CLOUD_NAME: string;
@@ -10,7 +9,7 @@ export type AppEnv = {
 };
 
 export function getEnv(): AppEnv {
-  const e = cfEnv as unknown as Partial<AppEnv>;
+  const e = process.env as unknown as Partial<AppEnv>;
   for (const k of ['DATABASE_URL', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET', 'AUTH_SECRET'] as const) {
     if (!e[k]) throw new Error(`Missing environment variable: ${k}`);
   }

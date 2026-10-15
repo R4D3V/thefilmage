@@ -4,7 +4,3 @@ declare namespace App {
     user?: { id: number; email: string; role: string };
   }
 }
-
-declare module 'cloudflare:workers' {
-  export const env: Record<string, unknown>;
-}

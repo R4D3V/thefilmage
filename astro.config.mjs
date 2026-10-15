@@ -1,12 +1,12 @@
 import { defineConfig } from 'astro/config';
-import cloudflare from '@astrojs/cloudflare';
+import vercel from '@astrojs/vercel';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   site: 'https://thefilmage.com', // TODO: set your production domain
   output: 'server',
-  adapter: cloudflare(),
+  adapter: vercel(),
   integrations: [sitemap({ filter: (p) => !p.includes('/admin') && !p.includes('/api') })],
   vite: { plugins: [tailwindcss()] },
   security: { checkOrigin: true },
