@@ -41,26 +41,30 @@ const ld = {
       <span aria-hidden="true"> / </span>
       <span aria-current="page" class="text-bone">{service.title}</span>
     </nav>
-    <h1 class="display mt-4 text-[clamp(3rem,9vw,8rem)]">{service.title}</h1>
-    <p class="mt-8 max-w-2xl text-lg text-ash">{service.summary}</p>
+    <div data-hero>
+      <h1 data-hero-item class="display mt-4 text-[clamp(3rem,9vw,8rem)]">{service.title}</h1>
+      <p data-hero-item class="mt-8 max-w-2xl text-lg text-ash">{service.summary}</p>
+    </div>
 
     {
       service.imagePublicId && (
-        <img
-          src={img(service.imagePublicId, 1280)}
-          srcset={srcset(service.imagePublicId)}
-          sizes="100vw"
-          alt={service.title}
-          width="1280"
-          height="720"
-          loading="eager"
-          decoding="async"
-          class="mt-12 w-full bg-coal"
-        />
+    <div data-reveal>
+      <img
+        src={img(service.imagePublicId, 1280)}
+        srcset={srcset(service.imagePublicId)}
+        sizes="100vw"
+        alt={service.title}
+        width="1280"
+        height="720"
+        loading="eager"
+        decoding="async"
+        class="mt-12 w-full bg-coal"
+      />
+    </div>
       )
     }
 
-    <div class="mt-12 flex flex-wrap gap-4">
+    <div data-reveal class="mt-12 flex flex-wrap gap-4">
       <a href="/contact" class="bg-amber px-8 py-4 font-extrabold text-ink">Book This Service</a>
       <a href="/work" class="border border-white/30 px-8 py-4 font-extrabold hover:border-amber hover:text-amber">View Our Work</a>
     </div>
@@ -68,10 +72,10 @@ const ld = {
     {
       others.length > 0 && (
         <section class="mt-24" aria-labelledby="other-services">
-          <h2 id="other-services" class="display text-5xl">Other services</h2>
+          <h2 data-reveal id="other-services" class="display text-5xl">Other services</h2>
           <ul class="mt-8 grid gap-px bg-white/10 md:grid-cols-2 lg:grid-cols-3">
             {others.map((s) => (
-              <li class="bg-ink p-8">
+              <li data-reveal class="bg-ink p-8">
                 <h3 class="display text-3xl">
                   <a href={`/services/${s.slug}`} class="transition hover:text-amber">
                     {s.title}

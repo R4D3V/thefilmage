@@ -1,21 +1,73 @@
 ---
-// GSAP is only downloaded when the page has [data-reveal]/[data-hero] AND the visitor allows motion.
+// High-quality GSAP motion: choreographed hero entrances, staggered scroll reveals,
+// subtle parallax. Respects reduced motion; content stays visible if GSAP fails.
+// Usage: data-hero (+ optional data-hero-item children) · data-reveal (+ optional data-delay ms) · data-parallax
 ---
 <script>
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const targets = document.querySelectorAll('[data-reveal],[data-hero]');
-  if (!reduce && targets.length) {
-    Promise.all([import('gsap'), import('gsap/ScrollTrigger')])
-      .then(([{ gsap }, { ScrollTrigger }]) => {
-        gsap.registerPlugin(ScrollTrigger);
-        const hero = document.querySelector('[data-hero]');
-        if (hero) gsap.from(hero, { yPercent: 18, opacity: 0, duration: 1, ease: 'power3.out' });
-        ScrollTrigger.batch('[data-reveal]', {
-          start: 'top 88%', once: true,
-          onEnter: (els) => gsap.to(els, { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out', stagger: 0.08, overwrite: true }),
+  async function initMotion() {
+    const root = document.documentElement;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      root.classList.remove('motion');
+      return;
+    }
+    if (!document.querySelector('[data-reveal],[data-hero],[data-parallax]')) {
+      root.classList.remove('motion');
+      return;
+    }
+    try {
+      const [{ gsap }, { ScrollTrigger }] = await Promise.all([import('gsap'), import('gsap/ScrollTrigger')]);
+      gsap.registerPlugin(ScrollTrigger);
+
+      // Choreographed hero entrance (runs on load, no scroll needed).
+      document.querySelectorAll('[data-hero]').forEach((hero) => {
+        const items = hero.querySelectorAll('[data-hero-item]');
+        const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+        if (items.length) {
+          tl.from(items, { y: 44, opacity: 0, duration: 1, stagger: 0.12 });
+        } else {
+          tl.from(hero, { yPercent: 10, opacity: 0, duration: 1 });
+        }
+      });
+
+      // Subtle parallax for hero media (video/poster frames drift on scroll).
+      document.querySelectorAll('[data-parallax]').forEach((el) => {
+        gsap.to(el, {
+          yPercent: -8, ease: 'none',
+          scrollTrigger: { trigger: el.closest('section') ?? el, start: 'top top', end: 'bottom top', scrub: true },
         });
-      })
-      // If the library fails to load, never leave content hidden.
-      .catch(() => document.documentElement.classList.remove('motion'));
+      });
+
+      // Staggered scroll reveals. Variants via data-reveal="left|right|scale" (default: up).
+      const fromVars = (el: Element) => {
+        const v = (el as HTMLElement).dataset.reveal || '';
+        const base = { opacity: 0, duration: 0.9, ease: 'power2.out', overwrite: true };
+        if (v === 'left') return { ...base, x: -36 };
+        if (v === 'right') return { ...base, x: 36 };
+        if (v === 'scale') return { ...base, scale: 0.94, y: 12 };
+        return { ...base, y: 28 };
+      };
+      ScrollTrigger.batch('[data-reveal]', {
+        start: 'top 88%',
+        once: true,
+        onEnter: (els) =>
+          els.forEach((el: Element, i: number) => {
+            gsap.fromTo(el, fromVars(el), {
+              ...fromVars(el), opacity: 1, x: 0, y: 0, scale: 1,
+              duration: 0.9, delay: (Number((el as HTMLElement).dataset.delay) || 0) / 1000 + i * 0.06,
+            });
+          }),
+      });
+
+      // Recalculate triggers once media loads (prevents jumps with lazy images).
+      const refresh = () => ScrollTrigger.refresh();
+      addEventListener('load', refresh, { once: true });
+      setTimeout(refresh, 2000);
+    } catch {
+      // Library failed to load — never leave content hidden.
+      root.classList.remove('motion');
+    }
   }
+  initMotion();
+  // Re-run after Astro view-transition navigations.
+  document.addEventListener('astro:page-load', initMotion);
 </script>
