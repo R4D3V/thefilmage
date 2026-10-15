@@ -18,7 +18,7 @@ const heroVideo = s.hero_video_public_id;
 <Base>
   <section class="relative flex min-h-svh items-end overflow-hidden px-5 pb-16 pt-32">
     {heroVideo && (
-      <video data-parallax class="absolute inset-0 -z-10 h-full w-full object-cover opacity-50" autoplay muted loop playsinline preload="none" poster={videoPoster(heroVideo)}>
+      <video data-parallax class="absolute inset-0 -z-10 h-full w-full object-cover opacity-50" autoplay muted loop playsinline preload="auto" poster={videoPoster(heroVideo)}>
         <source src={videoSrc(heroVideo, 1280).webm} type="video/webm" />
         <source src={videoSrc(heroVideo, 1280).mp4} type="video/mp4" />
       </video>
