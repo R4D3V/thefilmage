@@ -16,7 +16,7 @@ const [services, projects, testimonials] = await Promise.all([
 const heroVideo = s.hero_video_public_id;
 ---
 <Base>
-  <section class="relative flex min-h-svh items-end overflow-hidden px-5 pb-16 pt-32">
+  <section class="relative isolate flex h-svh min-h-[560px] items-end overflow-hidden px-5 pb-16 pt-32">
     {heroVideo && (
       <video data-parallax class="absolute inset-0 -z-10 h-full w-full object-cover opacity-50" autoplay muted loop playsinline preload="auto" poster={videoPoster(heroVideo)}>
         <source src={videoSrc(heroVideo, 1280).webm} type="video/webm" />
@@ -25,7 +25,7 @@ const heroVideo = s.hero_video_public_id;
     )}
     <div class="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/60 to-transparent"></div>
     <div data-hero class="mx-auto w-full max-w-7xl">
-      <h1 data-hero-item class="display text-[clamp(3.5rem,13vw,11rem)]">{s.hero_heading}</h1>
+      <h1 data-hero-item class="display text-[clamp(1.75rem,6.5vw,5.5rem)] lg:text-[4rem]">{s.hero_heading}</h1>
       <p data-hero-item class="mt-6 max-w-xl text-lg text-ash">{s.hero_description}</p>
       <div data-hero-item class="mt-8 flex flex-wrap gap-4">
         <a href="/work" class="bg-amber px-7 py-4 font-extrabold text-ink">View Our Work</a>
