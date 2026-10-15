@@ -1,0 +1,32 @@
+---
+import Base from '@/layouts/Base.astro';
+import ProjectCard from '@/components/ProjectCard.astro';
+import { and, asc, eq } from 'drizzle-orm';
+import { getDb, schema } from '@/db/client';
+
+const db = getDb();
+const active = Astro.url.searchParams.get('category') ?? '';
+const cats = await db.select().from(schema.categories).orderBy(asc(schema.categories.position));
+const current = cats.find((c) => c.slug === active);
+const rows = await db.select({ p: schema.projects, categoryName: schema.categories.name })
+  .from(schema.projects).leftJoin(schema.categories, eq(schema.projects.categoryId, schema.categories.id))
+  .where(and(eq(schema.projects.published, true), current ? eq(schema.projects.categoryId, current.id) : undefined))
+  .orderBy(asc(schema.projects.position));
+---
+<Base title="Our Work | The Filmage" description="Selected video, photography and design projects by The Filmage.">
+  <section class="mx-auto max-w-7xl px-5 pb-24 pt-36">
+    <h1 class="display text-[clamp(3.5rem,11vw,9rem)]">Our work</h1>
+    <nav aria-label="Filter projects" class="mt-10 flex flex-wrap gap-2">
+      <a href="/work" aria-current={!current ? 'true' : undefined} class="border border-white/20 px-4 py-2 text-sm font-semibold aria-[current=true]:border-amber aria-[current=true]:bg-amber aria-[current=true]:text-ink">All</a>
+      {cats.map((c) => (
+        <a href={`/work?category=${c.slug}`} aria-current={current?.id === c.id ? 'true' : undefined}
+          class="border border-white/20 px-4 py-2 text-sm font-semibold aria-[current=true]:border-amber aria-[current=true]:bg-amber aria-[current=true]:text-ink">{c.name}</a>
+      ))}
+    </nav>
+    {rows.length === 0
+      ? <p class="mt-16 text-ash">No projects here yet — check back soon.</p>
+      : <ul class="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {rows.map(({ p, categoryName }, i) => <li><ProjectCard p={{ ...p, categoryName }} eager={i < 3} /></li>)}
+        </ul>}
+  </section>
+</Base>

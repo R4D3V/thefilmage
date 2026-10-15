@@ -1,0 +1,26 @@
+---
+import Base from '@/layouts/Base.astro';
+import { asc, eq } from 'drizzle-orm';
+import { getDb, schema } from '@/db/client';
+import { img } from '@/lib/cloudinary';
+const items = await getDb().select().from(schema.services).where(eq(schema.services.published, true)).orderBy(asc(schema.services.position));
+---
+<Base title="Services | The Filmage" description="Video production, cinematographers and equipment hire, live streaming, B2B video and post production.">
+  <section class="mx-auto max-w-7xl px-5 pb-24 pt-36">
+    <h1 class="display text-[clamp(3.5rem,11vw,9rem)]">Services</h1>
+    <ol class="mt-12 divide-y divide-white/10 border-y border-white/10">
+      {items.map((s, i) => (
+        <li class="grid gap-6 py-10 md:grid-cols-[6rem_1fr_1fr]">
+          <span class="font-extrabold text-amber">{String(i + 1).padStart(2, '0')}</span>
+          <h2 class="display text-5xl"><a href={`/services/${s.slug}`} class="transition hover:text-amber">{s.title}</a></h2>
+          <div>
+            <p class="text-ash">{s.summary}</p>
+            <a href={`/services/${s.slug}`} class="mt-3 inline-block text-sm font-extrabold text-amber">Learn more →</a>
+            {s.imagePublicId && <img src={img(s.imagePublicId, 640, { h: 360 })} alt="" width="640" height="360" loading="lazy" class="mt-4 w-full" />}
+          </div>
+        </li>
+      ))}
+    </ol>
+    <a href="/contact" class="mt-12 inline-block bg-amber px-8 py-4 font-extrabold text-ink">Let's Work Together</a>
+  </section>
+</Base>

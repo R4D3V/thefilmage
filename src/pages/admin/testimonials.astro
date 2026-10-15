@@ -1,0 +1,65 @@
+---
+import Admin from '@/layouts/Admin.astro';
+import Uploader from '@/components/Uploader.astro';
+import { asc, eq, max } from 'drizzle-orm';
+import { getDb, schema } from '@/db/client';
+import { destroyAsset } from '@/lib/cloudinary';
+import { asset, bool, int, str } from '@/lib/admin';
+const db = getDb();
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData(); const id = int(f, 'id'); const intent = String(f.get('intent'));
+  if (intent === 'delete') {
+    const [t] = await db.select().from(schema.testimonials).where(eq(schema.testimonials.id, id)).limit(1);
+    await db.delete(schema.testimonials).where(eq(schema.testimonials.id, id));
+    if (t?.photoPublicId) await destroyAsset(t.photoPublicId);
+  } else if (intent === 'save') {
+    const clientName = str(f, 'clientName', 120); const body = str(f, 'body', 2000);
+    if (clientName && body) {
+      const photo = asset(f.get('photo'))?.publicId ?? null;
+      const v = { clientName, clientCompany: str(f, 'clientCompany', 120) || null, body, rating: Math.min(5, Math.max(1, int(f, 'rating', 5))), photoPublicId: photo, published: bool(f, 'published') };
+      if (id) {
+        const [old] = await db.select().from(schema.testimonials).where(eq(schema.testimonials.id, id)).limit(1);
+        await db.update(schema.testimonials).set(v).where(eq(schema.testimonials.id, id));
+        if (old?.photoPublicId && old.photoPublicId !== photo) await destroyAsset(old.photoPublicId);
+      } else {
+        const [{ m } = { m: null }] = await db.select({ m: max(schema.testimonials.position) }).from(schema.testimonials);
+        await db.insert(schema.testimonials).values({ ...v, position: (m ?? -1) + 1 });
+      }
+    }
+  }
+  return Astro.redirect('/admin/testimonials?saved=1');
+}
+const rows = await db.select().from(schema.testimonials).orderBy(asc(schema.testimonials.position), asc(schema.testimonials.id));
+const inp = 'mt-1 w-full bg-coal p-3';
+---
+<Admin title="Testimonials">
+  <details class="mb-8 max-w-2xl border border-white/10 p-4"><summary class="cursor-pointer font-extrabold text-amber">Add testimonial</summary>
+    <form method="post" class="mt-4 space-y-4"><input type="hidden" name="intent" value="save" />
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="block text-sm font-semibold">Client name<input name="clientName" required class={inp} /></label>
+        <label class="block text-sm font-semibold">Company<input name="clientCompany" class={inp} /></label></div>
+      <label class="block text-sm font-semibold">Testimonial<textarea name="body" rows="4" required class={inp}></textarea></label>
+      <label class="block text-sm font-semibold">Rating (1–5)<input type="number" name="rating" min="1" max="5" value="5" class={inp} /></label>
+      <Uploader name="photo" kind="image" folder="testimonials" label="Client photo" />
+      <label class="text-sm"><input type="checkbox" name="published" /> Published</label>
+      <div><button class="bg-amber px-6 py-3 font-extrabold text-ink">Add</button></div></form></details>
+  <ul class="max-w-2xl space-y-3">
+    {rows.map((t) => (
+      <li class="border border-white/10 p-4">
+        <details><summary class="flex cursor-pointer justify-between font-semibold"><span>{t.clientName}{t.clientCompany ? `, ${t.clientCompany}` : ''}</span><span class="text-xs text-ash">{t.published ? 'Published' : 'Hidden'}</span></summary>
+          <form method="post" class="mt-4 space-y-4"><input type="hidden" name="id" value={t.id} /><input type="hidden" name="intent" value="save" />
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="block text-sm font-semibold">Client name<input name="clientName" required value={t.clientName} class={inp} /></label>
+              <label class="block text-sm font-semibold">Company<input name="clientCompany" value={t.clientCompany ?? ''} class={inp} /></label></div>
+            <label class="block text-sm font-semibold">Testimonial<textarea name="body" rows="4" required class={inp}>{t.body}</textarea></label>
+            <label class="block text-sm font-semibold">Rating (1–5)<input type="number" name="rating" min="1" max="5" value={t.rating} class={inp} /></label>
+            <Uploader name="photo" kind="image" folder="testimonials" label="Client photo" values={t.photoPublicId ? [{ id: t.photoPublicId }] : []} />
+            <label class="text-sm"><input type="checkbox" name="published" checked={t.published} /> Published</label>
+            <div><button class="bg-amber px-6 py-2 font-extrabold text-ink">Save</button></div></form>
+        </details>
+        <form method="post" class="mt-3"><input type="hidden" name="id" value={t.id} />
+          <button name="intent" value="delete" class="border border-white/20 px-2 py-1 text-xs text-red-400" onclick="return confirm('Delete this testimonial?')">Delete</button></form>
+      </li>
+    ))}
+  </ul>
+</Admin>

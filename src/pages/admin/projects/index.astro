@@ -1,0 +1,54 @@
+---
+import Admin from '@/layouts/Admin.astro';
+import { asc, eq } from 'drizzle-orm';
+import { getDb, schema } from '@/db/client';
+import { destroyAsset } from '@/lib/cloudinary';
+import { int, move } from '@/lib/admin';
+const db = getDb();
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const id = int(f, 'id'); const intent = String(f.get('intent'));
+  const [p] = await db.select().from(schema.projects).where(eq(schema.projects.id, id)).limit(1);
+  if (p) {
+    if (intent === 'publish') await db.update(schema.projects).set({ published: !p.published }).where(eq(schema.projects.id, id));
+    else if (intent === 'feature') await db.update(schema.projects).set({ featured: !p.featured }).where(eq(schema.projects.id, id));
+    else if (intent === 'up' || intent === 'down') await move(schema.projects, id, intent);
+    else if (intent === 'delete') {
+      const imgs = await db.select().from(schema.projectImages).where(eq(schema.projectImages.projectId, id));
+      await db.delete(schema.projects).where(eq(schema.projects.id, id));
+      await Promise.all([...(p.coverPublicId ? [destroyAsset(p.coverPublicId)] : []), ...(p.videoPublicId ? [destroyAsset(p.videoPublicId, 'video')] : []), ...imgs.map((i) => destroyAsset(i.publicId))]);
+    }
+  }
+  return Astro.redirect('/admin/projects?saved=1');
+}
+const rows = await db.select({ p: schema.projects, cat: schema.categories.name }).from(schema.projects)
+  .leftJoin(schema.categories, eq(schema.projects.categoryId, schema.categories.id)).orderBy(asc(schema.projects.position), asc(schema.projects.id));
+const btn = 'border border-white/20 px-2 py-1 text-xs hover:border-amber';
+---
+<Admin title="Projects">
+  <a href="/admin/projects/new" class="mb-6 inline-block bg-amber px-5 py-3 text-sm font-extrabold text-ink">New project</a>
+  <div class="overflow-x-auto">
+  <table class="w-full min-w-[40rem] text-left text-sm">
+    <thead class="text-ash"><tr><th class="p-2">Title</th><th>Category</th><th>Status</th><th>Order</th><th>Actions</th></tr></thead>
+    <tbody class="divide-y divide-white/10">
+      {rows.map(({ p, cat }) => (
+        <tr>
+          <td class="p-2 font-semibold"><a class="hover:text-amber" href={`/admin/projects/${p.id}`}>{p.title}</a>{p.featured && <span class="ml-2 text-amber">★</span>}</td>
+          <td class="text-ash">{cat ?? '—'}</td>
+          <td>{p.published ? 'Published' : 'Draft'}</td>
+          <td>
+            <form method="post" class="flex gap-1"><input type="hidden" name="id" value={p.id} />
+              <button name="intent" value="up" class={btn} aria-label="Move up">↑</button><button name="intent" value="down" class={btn} aria-label="Move down">↓</button></form>
+          </td>
+          <td>
+            <form method="post" class="flex flex-wrap gap-1"><input type="hidden" name="id" value={p.id} />
+              <button name="intent" value="publish" class={btn}>{p.published ? 'Unpublish' : 'Publish'}</button>
+              <button name="intent" value="feature" class={btn}>{p.featured ? 'Unfeature' : 'Feature'}</button>
+              <button name="intent" value="delete" class={`${btn} text-red-400`} onclick="return confirm('Delete this project and its media?')">Delete</button></form>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table></div>
+  {rows.length === 0 && <p class="mt-6 text-ash">No projects yet.</p>}
+</Admin>

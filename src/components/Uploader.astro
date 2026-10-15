@@ -1,0 +1,57 @@
+---
+// Direct-to-Cloudinary upload with server-signed params. Writes hidden inputs: name="<name>" value="publicId|w|h"
+import { img, videoPoster } from '@/lib/cloudinary';
+interface Props { name: string; kind: 'image' | 'video'; folder: string; multiple?: boolean; label: string; values?: { id: string; w?: number | null; h?: number | null }[]; }
+const { name, kind, folder, multiple = false, label, values = [] } = Astro.props;
+---
+<fieldset class="border border-white/10 p-4" data-uploader data-name={name} data-kind={kind} data-folder={folder} data-multiple={String(multiple)}>
+  <legend class="px-2 text-sm font-semibold">{label}</legend>
+  <ul data-list class="mb-3 flex flex-wrap gap-3">
+    {values.map((v) => (
+      <li data-item class="relative">
+        <input type="hidden" name={name} value={`${v.id}|${v.w ?? ''}|${v.h ?? ''}`} />
+        <img src={kind === 'image' ? img(v.id, 200, { h: 200 }) : videoPoster(v.id, 200)} alt="" width="96" height="96" class="h-24 w-24 object-cover" />
+        <button type="button" data-remove class="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-red-600 text-xs" aria-label="Remove">×</button>
+      </li>
+    ))}
+  </ul>
+  <input type="file" accept={kind === 'image' ? 'image/jpeg,image/png,image/webp,image/avif' : 'video/mp4,video/quicktime,video/webm'} multiple={multiple} class="text-sm" />
+  <p data-status class="mt-2 text-xs text-ash" role="status"></p>
+</fieldset>
+<script>
+  document.querySelectorAll<HTMLElement>('[data-uploader]').forEach((root) => {
+    const { name, kind, folder, multiple } = root.dataset as Record<string, string>;
+    const list = root.querySelector<HTMLElement>('[data-list]')!;
+    const input = root.querySelector<HTMLInputElement>('input[type=file]')!;
+    const status = root.querySelector<HTMLElement>('[data-status]')!;
+    const MAX = kind === 'image' ? 15 * 1024 * 1024 : 200 * 1024 * 1024;
+    list.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('[data-remove]'); if (b) b.closest('[data-item]')?.remove(); });
+    input.addEventListener('change', async () => {
+      for (const file of Array.from(input.files ?? [])) {
+        if (file.size > MAX) { status.textContent = `${file.name} is too large (max ${MAX / 1048576} MB).`; continue; }
+        try {
+          status.textContent = `Uploading ${file.name}…`;
+          const sign = await (await fetch(`/api/admin/sign-upload?kind=${kind}&folder=${folder}`)).json();
+          if (!sign.url) throw new Error(sign.error ?? 'Could not sign upload');
+          const fd = new FormData();
+          Object.entries(sign.fields).forEach(([k, v]) => fd.append(k, String(v)));
+          fd.append('file', file);
+          const res = await fetch(sign.url, { method: 'POST', body: fd });
+          const out = await res.json();
+          if (!res.ok) throw new Error(out.error?.message ?? 'Upload failed');
+          if (multiple !== 'true') list.innerHTML = '';
+          const thumb = kind === 'image'
+            ? out.secure_url.replace('/upload/', '/upload/c_fill,w_200,h_200,f_auto/')
+            : out.secure_url.replace('/upload/', '/upload/so_0,w_200/').replace(/\.\w+$/, '.jpg');
+          const li = document.createElement('li'); li.dataset.item = ''; li.className = 'relative';
+          li.innerHTML = `<input type="hidden" name="${name}"><img alt="" width="96" height="96" class="h-24 w-24 object-cover"><button type="button" data-remove class="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-red-600 text-xs" aria-label="Remove">×</button>`;
+          li.querySelector('input')!.value = `${out.public_id}|${out.width ?? ''}|${out.height ?? ''}`;
+          li.querySelector('img')!.src = thumb;
+          list.appendChild(li);
+          status.textContent = 'Uploaded. Save the form to keep it.';
+        } catch (err) { status.textContent = (err as Error).message; }
+      }
+      input.value = '';
+    });
+  });
+</script>

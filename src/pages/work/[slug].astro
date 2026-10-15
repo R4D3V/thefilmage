@@ -1,0 +1,61 @@
+---
+import Base from '@/layouts/Base.astro';
+import ProjectCard from '@/components/ProjectCard.astro';
+import { and, asc, eq, ne } from 'drizzle-orm';
+import { getDb, schema } from '@/db/client';
+import { img, srcset, videoPoster, videoSrc } from '@/lib/cloudinary';
+
+const db = getDb();
+const slug = Astro.params.slug!;
+const [row] = await db.select({ p: schema.projects, categoryName: schema.categories.name })
+  .from(schema.projects).leftJoin(schema.categories, eq(schema.projects.categoryId, schema.categories.id))
+  .where(and(eq(schema.projects.slug, slug), eq(schema.projects.published, true))).limit(1);
+if (!row) return new Response(null, { status: 404 });
+const { p, categoryName } = row;
+const [gallery, related] = await Promise.all([
+  db.select().from(schema.projectImages).where(eq(schema.projectImages.projectId, p.id)).orderBy(asc(schema.projectImages.position)),
+  p.categoryId
+    ? db.select().from(schema.projects).where(and(eq(schema.projects.published, true), eq(schema.projects.categoryId, p.categoryId), ne(schema.projects.id, p.id))).orderBy(asc(schema.projects.position)).limit(3)
+    : Promise.resolve([]),
+]);
+const desc = p.description.slice(0, 155);
+const date = p.projectDate?.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+const ld = { '@context': 'https://schema.org', '@type': 'CreativeWork', name: p.title, description: desc, creator: { '@type': 'Organization', name: 'The Filmage' }, dateCreated: p.projectDate?.toISOString() };
+---
+<Base title={`${p.title} | The Filmage`} description={desc} image={p.coverPublicId ? img(p.coverPublicId, 1200, { h: 630 }) : undefined}>
+  <script type="application/ld+json" set:html={JSON.stringify(ld)} />
+  <article class="mx-auto max-w-7xl px-5 pb-24 pt-36">
+    {categoryName && <p class="text-xs font-extrabold uppercase tracking-widest text-amber">{categoryName}</p>}
+    <h1 class="display mt-2 text-[clamp(3rem,9vw,8rem)]">{p.title}</h1>
+    <dl class="mt-8 flex flex-wrap gap-x-12 gap-y-3 text-sm">
+      {p.clientName && <div><dt class="text-ash">Client</dt><dd class="font-extrabold">{p.clientName}</dd></div>}
+      {date && <div><dt class="text-ash">Date</dt><dd class="font-extrabold">{date}</dd></div>}
+    </dl>
+    <p class="mt-8 max-w-2xl whitespace-pre-line text-lg text-ash">{p.description}</p>
+
+    {p.videoPublicId && (
+      <video class="mt-12 aspect-video w-full bg-coal" controls preload="none" playsinline poster={videoPoster(p.videoPublicId, 1600)}>
+        <source src={videoSrc(p.videoPublicId, 1280).webm} type="video/webm" />
+        <source src={videoSrc(p.videoPublicId, 1280).mp4} type="video/mp4" />
+      </video>
+    )}
+
+    {gallery.length > 0 && (
+      <ul class="mt-12 grid gap-4 md:grid-cols-2">
+        {gallery.map((g, i) => (
+          <li>
+            <img src={img(g.publicId, 1200)} srcset={srcset(g.publicId)} sizes="(min-width:768px) 50vw,100vw" alt={g.alt || `${p.title} — image ${i + 1}`}
+              width={g.width ?? 1200} height={g.height ?? 800} loading={i < 2 ? 'eager' : 'lazy'} decoding="async" class="h-auto w-full bg-coal" />
+          </li>
+        ))}
+      </ul>
+    )}
+
+    {related.length > 0 && (
+      <section class="mt-24" aria-labelledby="rel">
+        <h2 id="rel" class="display text-5xl">Related projects</h2>
+        <ul class="mt-8 grid gap-8 md:grid-cols-3">{related.map((r) => <li><ProjectCard p={{ ...r, categoryName }} /></li>)}</ul>
+      </section>
+    )}
+  </article>
+</Base>

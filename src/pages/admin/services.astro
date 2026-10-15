@@ -1,0 +1,61 @@
+---
+import Admin from '@/layouts/Admin.astro';
+import Uploader from '@/components/Uploader.astro';
+import { asc, eq, max } from 'drizzle-orm';
+import { getDb, schema } from '@/db/client';
+import { destroyAsset } from '@/lib/cloudinary';
+import { asset, bool, int, move, slugify, str } from '@/lib/admin';
+const db = getDb();
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData(); const id = int(f, 'id'); const intent = String(f.get('intent'));
+  if (intent === 'delete') {
+    const [s] = await db.select().from(schema.services).where(eq(schema.services.id, id)).limit(1);
+    await db.delete(schema.services).where(eq(schema.services.id, id));
+    if (s?.imagePublicId) await destroyAsset(s.imagePublicId);
+  } else if (intent === 'up' || intent === 'down') await move(schema.services, id, intent);
+  else if (intent === 'save') {
+    const title = str(f, 'title', 120); const summary = str(f, 'summary', 1000);
+    if (title && summary) {
+      const img = asset(f.get('image'))?.publicId ?? null;
+      const base = { title, summary, imagePublicId: img, published: bool(f, 'published') };
+      if (id) {
+        const [old] = await db.select().from(schema.services).where(eq(schema.services.id, id)).limit(1);
+        await db.update(schema.services).set(base).where(eq(schema.services.id, id));
+        if (old?.imagePublicId && old.imagePublicId !== img) await destroyAsset(old.imagePublicId);
+      } else {
+        const [{ m } = { m: null }] = await db.select({ m: max(schema.services.position) }).from(schema.services);
+        await db.insert(schema.services).values({ ...base, slug: `${slugify(title)}-${Date.now().toString(36).slice(-4)}`, position: (m ?? -1) + 1 });
+      }
+    }
+  }
+  return Astro.redirect('/admin/services?saved=1');
+}
+const rows = await db.select().from(schema.services).orderBy(asc(schema.services.position), asc(schema.services.id));
+const inp = 'mt-1 w-full bg-coal p-3'; const btn = 'border border-white/20 px-2 py-1 text-xs hover:border-amber';
+---
+<Admin title="Services">
+  <details class="mb-8 max-w-2xl border border-white/10 p-4"><summary class="cursor-pointer font-extrabold text-amber">Add service</summary>
+    <form method="post" class="mt-4 space-y-4"><input type="hidden" name="intent" value="save" />
+      <label class="block text-sm font-semibold">Title<input name="title" required class={inp} /></label>
+      <label class="block text-sm font-semibold">Summary<textarea name="summary" rows="3" required class={inp}></textarea></label>
+      <Uploader name="image" kind="image" folder="services" label="Image (optional)" />
+      <label class="text-sm"><input type="checkbox" name="published" checked /> Published</label>
+      <div><button class="bg-amber px-6 py-3 font-extrabold text-ink">Add</button></div></form></details>
+  <ul class="max-w-2xl space-y-3">
+    {rows.map((s) => (
+      <li class="border border-white/10 p-4">
+        <details><summary class="flex cursor-pointer items-center justify-between font-semibold"><span>{s.title}</span><span class="text-xs text-ash">{s.published ? 'Published' : 'Hidden'}</span></summary>
+          <form method="post" class="mt-4 space-y-4"><input type="hidden" name="id" value={s.id} /><input type="hidden" name="intent" value="save" />
+            <label class="block text-sm font-semibold">Title<input name="title" required value={s.title} class={inp} /></label>
+            <label class="block text-sm font-semibold">Summary<textarea name="summary" rows="3" required class={inp}>{s.summary}</textarea></label>
+            <Uploader name="image" kind="image" folder="services" label="Image" values={s.imagePublicId ? [{ id: s.imagePublicId }] : []} />
+            <label class="text-sm"><input type="checkbox" name="published" checked={s.published} /> Published</label>
+            <div><button class="bg-amber px-6 py-2 font-extrabold text-ink">Save</button></div></form>
+        </details>
+        <form method="post" class="mt-3 flex gap-1"><input type="hidden" name="id" value={s.id} />
+          <button name="intent" value="up" class={btn} aria-label="Move up">↑</button><button name="intent" value="down" class={btn} aria-label="Move down">↓</button>
+          <button name="intent" value="delete" class={`${btn} ml-auto text-red-400`} onclick="return confirm('Delete this service?')">Delete</button></form>
+      </li>
+    ))}
+  </ul>
+</Admin>

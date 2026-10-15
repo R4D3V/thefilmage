@@ -1,0 +1,4 @@
+dist
+.astro
+drizzle
+package-lock.json

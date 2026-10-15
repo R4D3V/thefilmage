@@ -1,0 +1,22 @@
+---
+const { logo = '/logo-sm.png' } = Astro.props as { logo?: string };
+const links = [['Work', '/work'], ['Services', '/services'], ['About', '/about'], ['Contact', '/contact']];
+const here = Astro.url.pathname;
+---
+<header class="fixed inset-x-0 top-0 z-40 border-b border-white/5 bg-ink/80 backdrop-blur">
+  <nav class="mx-auto flex max-w-7xl items-center justify-between px-5 py-3" aria-label="Main">
+    <a href="/" aria-label="The Filmage home"><img src={logo} alt="The Filmage" width="120" height="54" class="h-10 w-auto" /></a>
+    <ul class="hidden items-center gap-8 text-sm font-semibold md:flex">
+      {links.map(([l, h]) => (
+        <li><a href={h} aria-current={here.startsWith(h!) ? 'page' : undefined} class="text-ash transition hover:text-bone aria-[current=page]:text-amber">{l}</a></li>
+      ))}
+    </ul>
+    <a href="/contact" class="hidden bg-amber px-5 py-2 text-sm font-extrabold text-ink md:block">Let's Work Together</a>
+    <details class="relative md:hidden">
+      <summary class="cursor-pointer list-none px-3 py-2 text-sm font-extrabold uppercase tracking-widest">Menu</summary>
+      <ul class="absolute right-0 mt-2 w-56 border border-white/10 bg-coal p-2">
+        {links.map(([l, h]) => <li><a href={h} class="block px-4 py-3 text-lg">{l}</a></li>)}
+      </ul>
+    </details>
+  </nav>
+</header>

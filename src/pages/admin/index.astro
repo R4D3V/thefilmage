@@ -1,0 +1,31 @@
+---
+import Admin from '@/layouts/Admin.astro';
+import { count, desc, eq } from 'drizzle-orm';
+import { getDb, schema } from '@/db/client';
+const db = getDb();
+const [[total], [pub], [msgs], recentP, recentM] = await Promise.all([
+  db.select({ n: count() }).from(schema.projects),
+  db.select({ n: count() }).from(schema.projects).where(eq(schema.projects.published, true)),
+  db.select({ n: count() }).from(schema.contactMessages),
+  db.select().from(schema.projects).orderBy(desc(schema.projects.createdAt)).limit(5),
+  db.select().from(schema.contactMessages).orderBy(desc(schema.contactMessages.createdAt)).limit(5),
+]);
+const stats = [['Total projects', total?.n ?? 0], ['Published', pub?.n ?? 0], ['Drafts', (total?.n ?? 0) - (pub?.n ?? 0)], ['Inquiries', msgs?.n ?? 0]] as const;
+---
+<Admin title="Dashboard">
+  <dl class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    {stats.map(([l, n]) => <div class="border border-white/10 p-5"><dt class="text-sm text-ash">{l}</dt><dd class="display text-5xl text-amber">{n}</dd></div>)}
+  </dl>
+  <div class="mt-10 grid gap-10 lg:grid-cols-2">
+    <section><h2 class="mb-3 font-extrabold">Recent projects</h2>
+      <ul class="divide-y divide-white/10 border border-white/10">
+        {recentP.map((p) => <li class="flex justify-between p-3 text-sm"><a class="hover:text-amber" href={`/admin/projects/${p.id}`}>{p.title}</a><span class={p.published ? 'text-amber' : 'text-ash'}>{p.published ? 'Published' : 'Draft'}</span></li>)}
+        {recentP.length === 0 && <li class="p-3 text-sm text-ash">No projects yet. <a class="text-amber" href="/admin/projects/new">Create one</a>.</li>}
+      </ul></section>
+    <section><h2 class="mb-3 font-extrabold">Recent messages</h2>
+      <ul class="divide-y divide-white/10 border border-white/10">
+        {recentM.map((m) => <li class="p-3 text-sm"><a class="hover:text-amber" href="/admin/messages">{!m.isRead && '● '}{m.name}</a> <span class="text-ash">· {m.service || 'General'} · {m.createdAt.toLocaleDateString('en-GB')}</span></li>)}
+        {recentM.length === 0 && <li class="p-3 text-sm text-ash">No messages yet.</li>}
+      </ul></section>
+  </div>
+</Admin>

@@ -1,0 +1,51 @@
+---
+import Admin from '@/layouts/Admin.astro';
+import Uploader from '@/components/Uploader.astro';
+import { getDb, schema } from '@/db/client';
+import { getSettings } from '@/lib/settings';
+import { asset, str } from '@/lib/admin';
+
+const TEXT = { business_name: 120, tagline: 160, email: 255, phone: 40, whatsapp: 20, address: 300, instagram: 300, youtube: 300, facebook: 300, tiktok: 300,
+  hero_heading: 160, hero_description: 500, seo_title: 70, seo_description: 200,
+  about_intro: 1500, mission: 600, philosophy: 1000, team: 1000, stats: 500 } as const;
+const AREAS = ['address', 'hero_description', 'seo_description', 'about_intro', 'mission', 'philosophy', 'team', 'stats'] as const;
+const IMAGES = ['logo_public_id', 'favicon_public_id', 'og_image_public_id'] as const;
+const VIDEO = 'hero_video_public_id';
+const isUrl = (v: string) => { try { return ['http:', 'https:'].includes(new URL(v).protocol); } catch { return false; } };
+
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const entries: [string, string][] = [];
+  for (const [k, max] of Object.entries(TEXT)) {
+    let v = str(f, k, max);
+    if (['instagram', 'youtube', 'facebook', 'tiktok'].includes(k) && v && !isUrl(v)) v = '';
+    if (k === 'whatsapp') v = v.replace(/\D/g, '');
+    entries.push([k, v]);
+  }
+  for (const k of [...IMAGES, VIDEO]) entries.push([k, asset(f.get(k))?.publicId ?? '']);
+  const db = getDb();
+  await Promise.all(entries.map(([key, value]) => db.insert(schema.siteSettings).values({ key, value }).onConflictDoUpdate({ target: schema.siteSettings.key, set: { value } })));
+  return Astro.redirect('/admin/settings?saved=1');
+}
+const s = await getSettings();
+const inp = 'mt-1 w-full bg-coal p-3';
+const label = (k: string) => k.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+const one = (k: string) => (s[k] ? [{ id: s[k]! }] : []);
+---
+<Admin title="Site settings">
+  <form method="post" class="max-w-3xl space-y-5">
+    <div class="grid gap-5 sm:grid-cols-2">
+      {Object.keys(TEXT).filter((k) => !(AREAS as readonly string[]).includes(k)).map((k) => (
+        <label class="block text-sm font-semibold">{label(k)}<input name={k} value={s[k] ?? ''} maxlength={TEXT[k as keyof typeof TEXT]} class={inp} /></label>
+      ))}
+    </div>
+    {AREAS.map((k) => (
+      <label class="block text-sm font-semibold">{label(k)}{k === 'team' && <span class="font-normal text-ash"> — one per line: Name | Role</span>}{k === 'stats' && <span class="font-normal text-ash"> — one per line: 150+ | Projects delivered</span>}<textarea name={k} rows="3" maxlength={TEXT[k]} class={inp}>{s[k] ?? ''}</textarea></label>
+    ))}
+    <Uploader name="logo_public_id" kind="image" folder="settings" label="Logo (leave empty to use the default)" values={one('logo_public_id')} />
+    <Uploader name="favicon_public_id" kind="image" folder="settings" label="Favicon (square PNG)" values={one('favicon_public_id')} />
+    <Uploader name="og_image_public_id" kind="image" folder="settings" label="Open Graph image (1200×630)" values={one('og_image_public_id')} />
+    <Uploader name="hero_video_public_id" kind="video" folder="settings" label="Home hero background video" values={one('hero_video_public_id')} />
+    <button class="bg-amber px-8 py-3 font-extrabold text-ink">Save settings</button>
+  </form>
+</Admin>

@@ -1,0 +1,21 @@
+---
+// GSAP is only downloaded when the page has [data-reveal]/[data-hero] AND the visitor allows motion.
+---
+<script>
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const targets = document.querySelectorAll('[data-reveal],[data-hero]');
+  if (!reduce && targets.length) {
+    Promise.all([import('gsap'), import('gsap/ScrollTrigger')])
+      .then(([{ gsap }, { ScrollTrigger }]) => {
+        gsap.registerPlugin(ScrollTrigger);
+        const hero = document.querySelector('[data-hero]');
+        if (hero) gsap.from(hero, { yPercent: 18, opacity: 0, duration: 1, ease: 'power3.out' });
+        ScrollTrigger.batch('[data-reveal]', {
+          start: 'top 88%', once: true,
+          onEnter: (els) => gsap.to(els, { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out', stagger: 0.08, overwrite: true }),
+        });
+      })
+      // If the library fails to load, never leave content hidden.
+      .catch(() => document.documentElement.classList.remove('motion'));
+  }
+</script>

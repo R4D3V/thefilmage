@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #070707;
+  --color-coal: #121212;
+  --color-ash: #a8a8a8;
+  --color-bone: #f4f1ec;
+  --color-amber: #e8873a;
+  --font-display: "Bebas Neue", Impact, "Arial Narrow", sans-serif;
+  --font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html { background: var(--color-ink); color: var(--color-bone); scroll-behavior: smooth; }
+body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+.display { font-family: var(--font-display); letter-spacing: .01em; line-height: .92; }
+:focus-visible { outline: 2px solid var(--color-amber); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* Cross-page fade/morph using the native View Transitions API (no JS). */
+@view-transition { navigation: auto; }
+
+/* Scroll reveals: hidden only when JS confirmed motion is allowed (see Base.astro). */
+.motion [data-reveal] { opacity: 0; transform: translateY(24px); }

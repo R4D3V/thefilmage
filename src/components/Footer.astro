@@ -1,0 +1,21 @@
+---
+const { settings: s, logo = '/logo-sm.png' } = Astro.props as { settings: Record<string, string>; logo?: string };
+const socials = [['Instagram', s.instagram], ['YouTube', s.youtube], ['Facebook', s.facebook], ['TikTok', s.tiktok]].filter(([, u]) => u);
+---
+<footer class="border-t border-white/10 px-5 py-14">
+  <div class="mx-auto grid max-w-7xl gap-10 md:grid-cols-3">
+    <div>
+      <img src={logo} alt="The Filmage" width="160" height="73" class="h-14 w-auto" loading="lazy" />
+      <p class="mt-4 italic text-ash">{s.tagline}</p>
+    </div>
+    <div class="text-sm text-ash">
+      <p><a class="hover:text-amber" href={`mailto:${s.email}`}>{s.email}</a></p>
+      <p class="mt-1"><a class="hover:text-amber" href={`tel:${s.phone}`}>{s.phone}</a></p>
+      {s.whatsapp && <p class="mt-1"><a class="hover:text-amber" href={`https://wa.me/${s.whatsapp}`} rel="noopener">WhatsApp</a></p>}
+    </div>
+    <ul class="flex flex-wrap gap-5 text-sm font-semibold">
+      {socials.map(([n, u]) => <li><a href={u} rel="noopener noreferrer" target="_blank" class="hover:text-amber">{n}</a></li>)}
+    </ul>
+  </div>
+  <p class="mx-auto mt-10 max-w-7xl text-xs text-ash">© {new Date().getFullYear()} {s.business_name}. All rights reserved.</p>
+</footer>

@@ -1,0 +1,30 @@
+---
+import '@/styles/global.css';
+import { count, eq } from 'drizzle-orm';
+import { getDb, schema } from '@/db/client';
+const { title } = Astro.props as { title: string };
+const [{ n: unread = 0 } = {}] = await getDb().select({ n: count() }).from(schema.contactMessages).where(eq(schema.contactMessages.isRead, false));
+const nav = [['Dashboard', '/admin'], ['Projects', '/admin/projects'], ['Services', '/admin/services'], ['Testimonials', '/admin/testimonials'], ['Messages', '/admin/messages'], ['Settings', '/admin/settings']] as const;
+const here = Astro.url.pathname;
+const saved = Astro.url.searchParams.get('saved');
+---
+<html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="robots" content="noindex" /><title>{title} · Admin</title></head>
+<body class="min-h-svh bg-ink text-bone md:grid md:grid-cols-[14rem_1fr]">
+  <aside class="border-b border-white/10 bg-coal p-4 md:min-h-svh md:border-b-0 md:border-r">
+    <a href="/admin"><img src="/logo-sm.png" alt="The Filmage" width="120" height="54" class="h-10 w-auto" /></a>
+    <nav aria-label="Admin" class="mt-4 flex gap-1 overflow-x-auto md:flex-col">
+      {nav.map(([l, h]) => (
+        <a href={h} aria-current={(h === '/admin' ? here === h : here.startsWith(h)) ? 'page' : undefined}
+          class="whitespace-nowrap px-3 py-2 text-sm font-semibold text-ash hover:text-bone aria-[current=page]:bg-amber aria-[current=page]:text-ink">
+          {l}{l === 'Messages' && unread > 0 && <span class="ml-2 rounded-full bg-amber px-2 text-xs text-ink">{unread}</span>}
+        </a>
+      ))}
+    </nav>
+    <form method="post" action="/admin/logout" class="mt-4"><button class="px-3 py-2 text-sm text-ash hover:text-bone">Sign out</button></form>
+  </aside>
+  <main class="min-w-0 p-5 md:p-10">
+    <h1 class="display mb-6 text-5xl">{title}</h1>
+    {saved && <p role="status" class="mb-6 border border-amber px-4 py-3 text-sm">Saved.</p>}
+    <slot />
+  </main>
+</body></html>

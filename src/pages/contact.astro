@@ -1,0 +1,80 @@
+---
+import Base from '@/layouts/Base.astro';
+import { asc, eq } from 'drizzle-orm';
+import { getDb, schema } from '@/db/client';
+import { getSettings } from '@/lib/settings';
+import { BUDGETS, contactSchema } from '@/lib/validation';
+import { allow } from '@/lib/ratelimit';
+
+const db = getDb();
+const s = await getSettings();
+const services = await db.select({ title: schema.services.title }).from(schema.services)
+  .where(eq(schema.services.published, true)).orderBy(asc(schema.services.position));
+
+let status: 'idle' | 'sent' | 'error' | 'limited' = 'idle';
+let errors: Record<string, string> = {};
+let values: Record<string, string> = {};
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  values = Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === 'string')) as Record<string, string>;
+  if (values.website) { status = 'sent'; } // honeypot: pretend success to bots
+  else {
+    const parsed = contactSchema.safeParse(values);
+    if (!parsed.success) {
+      status = 'error';
+      for (const i of parsed.error.issues) errors[String(i.path[0])] ??= i.message;
+    } else {
+      const ip = Astro.request.headers.get('cf-connecting-ip') ?? 'unknown';
+      const rl = await allow('contact', ip);
+      if (!rl.ok) status = 'limited';
+      else {
+        await db.insert(schema.contactMessages).values({ ...parsed.data, ipHash: rl.ipHash });
+        status = 'sent'; values = {};
+      }
+    }
+  }
+}
+const field = 'mt-1 w-full bg-coal p-3 text-bone';
+---
+<Base title="Contact | The Filmage" description="Tell us about your project — video production, live streaming, post production and more.">
+  <section class="mx-auto grid max-w-7xl gap-16 px-5 pb-24 pt-36 lg:grid-cols-2">
+    <div>
+      <h1 class="display text-[clamp(3.5rem,10vw,8rem)]">Let's work together</h1>
+      <p class="mt-6 max-w-md text-ash">Tell us about your story. We reply to every inquiry.</p>
+      <ul class="mt-10 space-y-3 font-semibold">
+        <li><a class="hover:text-amber" href={`mailto:${s.email}`}>{s.email}</a></li>
+        <li><a class="hover:text-amber" href={`tel:${s.phone}`}>{s.phone}</a></li>
+        {s.whatsapp && <li><a class="inline-block bg-[#25D366] px-5 py-3 text-ink" href={`https://wa.me/${s.whatsapp}?text=${encodeURIComponent('Hi The Filmage, I would like to discuss a project.')}`} rel="noopener noreferrer" target="_blank">Chat on WhatsApp</a></li>}
+      </ul>
+    </div>
+
+    <div>
+      {status === 'sent' ? (
+        <p role="status" class="border border-amber p-8 text-lg">Thank you — your message is in. We'll be in touch soon.</p>
+      ) : (
+        <form method="post" class="space-y-5" novalidate>
+          {status === 'limited' && <p role="alert" class="text-red-400">Too many messages from your network. Please try again later or use WhatsApp.</p>}
+          <div class="hidden" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off" /></label></div>
+          <label class="block text-sm font-semibold">Name *<input name="name" required autocomplete="name" value={values.name ?? ''} class={field} />
+            {errors.name && <span role="alert" class="text-red-400">{errors.name}</span>}</label>
+          <label class="block text-sm font-semibold">Email *<input name="email" type="email" required autocomplete="email" value={values.email ?? ''} class={field} />
+            {errors.email && <span role="alert" class="text-red-400">{errors.email}</span>}</label>
+          <div class="grid gap-5 sm:grid-cols-2">
+            <label class="block text-sm font-semibold">Phone<input name="phone" type="tel" autocomplete="tel" value={values.phone ?? ''} class={field} /></label>
+            <label class="block text-sm font-semibold">Company<input name="company" autocomplete="organization" value={values.company ?? ''} class={field} /></label>
+          </div>
+          <div class="grid gap-5 sm:grid-cols-2">
+            <label class="block text-sm font-semibold">Service
+              <select name="service" class={field}><option value="">Select…</option>{services.map((x) => <option selected={values.service === x.title}>{x.title}</option>)}</select></label>
+            <label class="block text-sm font-semibold">Budget
+              <select name="budget" class={field}><option value="">Select…</option>{BUDGETS.map((b) => <option selected={values.budget === b}>{b}</option>)}</select></label>
+          </div>
+          <label class="block text-sm font-semibold">Message *<textarea name="message" rows="6" required class={field}>{values.message ?? ''}</textarea>
+            {errors.message && <span role="alert" class="text-red-400">{errors.message}</span>}</label>
+          <button class="bg-amber px-8 py-4 font-extrabold text-ink">Send message</button>
+        </form>
+      )}
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,83 @@
+---
+import Admin from '@/layouts/Admin.astro';
+import Uploader from '@/components/Uploader.astro';
+import { and, asc, eq, ne, max } from 'drizzle-orm';
+import { z } from 'zod';
+import { getDb, schema } from '@/db/client';
+import { destroyAsset } from '@/lib/cloudinary';
+import { asset, assets, bool, int, slugify, str } from '@/lib/admin';
+
+const db = getDb();
+const isNew = Astro.params.id === 'new';
+const id = isNew ? 0 : Number(Astro.params.id);
+if (!isNew && !Number.isInteger(id)) return new Response(null, { status: 404 });
+const [existing] = isNew ? [] : await db.select().from(schema.projects).where(eq(schema.projects.id, id)).limit(1);
+if (!isNew && !existing) return new Response(null, { status: 404 });
+const cats = await db.select().from(schema.categories).orderBy(asc(schema.categories.position));
+
+let error = '';
+if (Astro.request.method === 'POST') {
+  const f = await Astro.request.formData();
+  const title = str(f, 'title', 160);
+  const ok = z.string().min(2).safeParse(title).success;
+  if (!ok) error = 'Title is required.';
+  else {
+    let slug = slugify(str(f, 'slug', 120) || title);
+    const clash = await db.select({ id: schema.projects.id }).from(schema.projects)
+      .where(and(eq(schema.projects.slug, slug), isNew ? undefined : ne(schema.projects.id, id))).limit(1);
+    if (clash.length) slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
+    const catId = int(f, 'categoryId', 0);
+    const d = new Date(str(f, 'projectDate', 10));
+    const cover = asset(f.get('cover')); const video = asset(f.get('video'));
+    const values = {
+      title, slug, description: str(f, 'description', 8000),
+      categoryId: cats.some((c) => c.id === catId) ? catId : null,
+      coverPublicId: cover?.publicId ?? null, videoPublicId: video?.publicId ?? null,
+      clientName: str(f, 'clientName', 160) || null, projectDate: isNaN(d.getTime()) ? null : d,
+      featured: bool(f, 'featured'), published: bool(f, 'published'),
+    };
+    let pid = id;
+    if (isNew) {
+      const [{ m } = { m: null }] = await db.select({ m: max(schema.projects.position) }).from(schema.projects);
+      [{ id: pid = 0 } = {}] = await db.insert(schema.projects).values({ ...values, position: (m ?? -1) + 1 }).returning({ id: schema.projects.id });
+    } else await db.update(schema.projects).set(values).where(eq(schema.projects.id, id));
+
+    const gallery = assets(f, 'gallery');
+    const old = await db.select().from(schema.projectImages).where(eq(schema.projectImages.projectId, pid));
+    await db.delete(schema.projectImages).where(eq(schema.projectImages.projectId, pid));
+    if (gallery.length) await db.insert(schema.projectImages).values(gallery.map((g, i) => ({ projectId: pid, publicId: g.publicId, width: g.width, height: g.height, position: i })));
+    // Clean up media that was removed in this save.
+    const keep = new Set([values.coverPublicId, values.videoPublicId, ...gallery.map((g) => g.publicId)]);
+    await Promise.all([
+      ...old.filter((o) => !keep.has(o.publicId)).map((o) => destroyAsset(o.publicId)),
+      ...(existing?.coverPublicId && !keep.has(existing.coverPublicId) ? [destroyAsset(existing.coverPublicId)] : []),
+      ...(existing?.videoPublicId && !keep.has(existing.videoPublicId) ? [destroyAsset(existing.videoPublicId, 'video')] : []),
+    ]);
+    return Astro.redirect(`/admin/projects/${pid}?saved=1`);
+  }
+}
+const gallery = isNew ? [] : await db.select().from(schema.projectImages).where(eq(schema.projectImages.projectId, id)).orderBy(asc(schema.projectImages.position));
+const p = existing;
+const inp = 'mt-1 w-full bg-coal p-3';
+---
+<Admin title={isNew ? 'New project' : 'Edit project'}>
+  {error && <p role="alert" class="mb-4 text-red-400">{error}</p>}
+  <form method="post" class="max-w-3xl space-y-5">
+    <label class="block text-sm font-semibold">Title *<input name="title" required maxlength="160" value={p?.title ?? ''} class={inp} /></label>
+    <label class="block text-sm font-semibold">Slug (URL) <span class="font-normal text-ash">— leave blank to generate</span><input name="slug" maxlength="120" value={p?.slug ?? ''} class={inp} /></label>
+    <label class="block text-sm font-semibold">Description<textarea name="description" rows="6" class={inp}>{p?.description ?? ''}</textarea></label>
+    <div class="grid gap-5 sm:grid-cols-3">
+      <label class="block text-sm font-semibold">Category<select name="categoryId" class={inp}><option value="0">None</option>{cats.map((c) => <option value={c.id} selected={p?.categoryId === c.id}>{c.name}</option>)}</select></label>
+      <label class="block text-sm font-semibold">Client<input name="clientName" value={p?.clientName ?? ''} class={inp} /></label>
+      <label class="block text-sm font-semibold">Project date<input type="date" name="projectDate" value={p?.projectDate?.toISOString().slice(0, 10) ?? ''} class={inp} /></label>
+    </div>
+    <Uploader name="cover" kind="image" folder="projects" label="Cover image" values={p?.coverPublicId ? [{ id: p.coverPublicId }] : []} />
+    <Uploader name="gallery" kind="image" folder="projects" multiple label="Gallery images (order = display order)" values={gallery.map((g) => ({ id: g.publicId, w: g.width, h: g.height }))} />
+    <Uploader name="video" kind="video" folder="projects" label="Video" values={p?.videoPublicId ? [{ id: p.videoPublicId }] : []} />
+    <div class="flex gap-8 text-sm">
+      <label><input type="checkbox" name="featured" checked={p?.featured ?? false} /> Featured</label>
+      <label><input type="checkbox" name="published" checked={p?.published ?? false} /> Published</label>
+    </div>
+    <div class="flex gap-3"><button class="bg-amber px-8 py-3 font-extrabold text-ink">Save project</button><a href="/admin/projects" class="px-4 py-3 text-ash">Back</a></div>
+  </form>
+</Admin>
