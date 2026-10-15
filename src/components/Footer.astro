@@ -1,21 +1,83 @@
 ---
 const { settings: s, logo = '/logo-sm.png' } = Astro.props as { settings: Record<string, string>; logo?: string };
-const socials = [['Instagram', s.instagram], ['YouTube', s.youtube], ['Facebook', s.facebook], ['TikTok', s.tiktok]].filter(([, u]) => u);
+const year = new Date().getFullYear();
+const socials = [
+  { name: 'Instagram', url: s.instagram, icon: 'M12 2.2c3.2 0 3.6 0 4.9.1 3.3.1 4.8 1.7 4.9 4.9.1 1.3.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 3.2-1.7 4.8-4.9 4.9-1.3.1-1.6.1-4.9.1s-3.6 0-4.9-.1c-3.3-.1-4.8-1.7-4.9-4.9-.1-1.3-.1-1.6-.1-4.8s0-3.6.1-4.8C2.4 4 4 2.4 7.2 2.3 8.4 2.2 8.8 2.2 12 2.2Zm0 3.6a6.2 6.2 0 1 0 0 12.4 6.2 6.2 0 0 0 0-12.4Zm0 10.2a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm6.4-10.4a1.4 1.4 0 1 0 0-2.9 1.4 1.4 0 0 0 0 2.9Z' },
+  { name: 'YouTube', url: s.youtube, icon: 'M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.3 31.3 0 0 0 0 12a31.3 31.3 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.3 31.3 0 0 0 24 12a31.3 31.3 0 0 0-.5-5.8ZM9.6 15.6V8.4L15.8 12l-6.2 3.6Z' },
+  { name: 'Facebook', url: s.facebook, icon: 'M24 12a12 12 0 1 0-13.9 11.9v-8.4h-3V12h3V9.4c0-3 1.8-4.7 4.5-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 1-2 1.9V12h3.3l-.5 3.5h-2.8v8.4A12 12 0 0 0 24 12Z' },
+  { name: 'TikTok', url: s.tiktok, icon: 'M19.6 7.2a5 5 0 0 1-3.4-3.1V.5h-3.4v13.9a2.9 2.9 0 1 1-2-2.7V8.2a6.3 6.3 0 1 0 5.4 6.2V8.1a8.3 8.3 0 0 0 4.8 1.5V6.2c-.5 0-1-.3-1.4-1Z' },
+].filter((x) => x.url);
+const explore = [['Home', '/'], ['Work', '/work'], ['Services', '/services'], ['About', '/about'], ['Contact', '/contact']];
+const services = ['Video Production', 'Live Streaming', 'Post Production', 'Equipment Hire', 'B2B Video'];
 ---
-<footer class="border-t border-white/10 px-5 py-14">
-  <div class="mx-auto grid max-w-7xl gap-10 md:grid-cols-3">
-    <div>
-      <img src={logo} alt="The Filmage" width="160" height="73" class="h-14 w-auto" loading="lazy" />
-      <p class="mt-4 italic text-ash">{s.tagline}</p>
+<footer class="mt-24 border-t border-white/10 bg-coal">
+  {/* CTA band */}
+  <div class="border-b border-white/10">
+    <div class="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-5 py-12 md:flex-row md:items-center">
+      <div>
+        <p class="text-xs font-extrabold uppercase tracking-widest text-amber">Have a story to tell?</p>
+        <p class="display mt-2 text-4xl md:text-5xl">LET'S CREATE SOMETHING UNFORGETTABLE</p>
+      </div>
+      <a href="/contact" class="shrink-0 bg-amber px-8 py-4 text-sm font-extrabold uppercase tracking-widest text-ink transition hover:brightness-110">Start a project</a>
     </div>
-    <div class="text-sm text-ash">
-      <p><a class="hover:text-amber" href={`mailto:${s.email}`}>{s.email}</a></p>
-      <p class="mt-1"><a class="hover:text-amber" href={`tel:${s.phone}`}>{s.phone}</a></p>
-      {s.whatsapp && <p class="mt-1"><a class="hover:text-amber" href={`https://wa.me/${s.whatsapp}`} rel="noopener">WhatsApp</a></p>}
-    </div>
-    <ul class="flex flex-wrap gap-5 text-sm font-semibold">
-      {socials.map(([n, u]) => <li><a href={u} rel="noopener noreferrer" target="_blank" class="hover:text-amber">{n}</a></li>)}
-    </ul>
   </div>
-  <p class="mx-auto mt-10 max-w-7xl text-xs text-ash">© {new Date().getFullYear()} {s.business_name}. All rights reserved.</p>
+
+  {/* Main grid */}
+  <div class="mx-auto grid max-w-7xl gap-12 px-5 py-14 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
+    <div>
+      <a href="/" aria-label="The Filmage home"><img src={logo} alt="The Filmage" width="160" height="73" class="h-12 w-auto" loading="lazy" /></a>
+      <p class="mt-4 max-w-xs text-sm italic leading-relaxed text-ash">{s.tagline || 'Telling stories with purpose.'}</p>
+      {socials.length > 0 && (
+        <ul class="mt-6 flex gap-3">
+          {socials.map(({ name, url, icon }) => (
+            <li>
+              <a href={url} target="_blank" rel="noopener noreferrer" aria-label={name} class="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-ash transition hover:border-amber hover:text-amber">
+                <svg viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4" aria-hidden="true"><path d={icon} /></svg>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+
+    <nav aria-label="Explore">
+      <h2 class="text-xs font-extrabold uppercase tracking-widest text-bone">Explore</h2>
+      <ul class="mt-5 space-y-3 text-sm">
+        {explore.map(([label, href]) => (
+          <li><a href={href} class="text-ash transition hover:text-amber">{label}</a></li>
+        ))}
+      </ul>
+    </nav>
+
+    <nav aria-label="Services">
+      <h2 class="text-xs font-extrabold uppercase tracking-widest text-bone">Services</h2>
+      <ul class="mt-5 space-y-3 text-sm">
+        {services.map((label) => (
+          <li><a href="/services" class="text-ash transition hover:text-amber">{label}</a></li>
+        ))}
+      </ul>
+    </nav>
+
+    <div>
+      <h2 class="text-xs font-extrabold uppercase tracking-widest text-bone">Get in touch</h2>
+      <ul class="mt-5 space-y-3 text-sm text-ash">
+        {s.email && <li><a class="transition hover:text-amber" href={`mailto:${s.email}`}>{s.email}</a></li>}
+        {s.phone && <li><a class="transition hover:text-amber" href={`tel:${s.phone.replace(/\s/g, '')}`}>{s.phone}</a></li>}
+        {s.whatsapp && <li><a class="transition hover:text-amber" href={`https://wa.me/${s.whatsapp}`} rel="noopener" target="_blank">WhatsApp us</a></li>}
+        {s.address && <li class="leading-relaxed">{s.address}</li>}
+      </ul>
+      <a href="/contact" class="mt-6 inline-block border border-white/15 px-5 py-2.5 text-xs font-extrabold uppercase tracking-widest text-bone transition hover:border-amber hover:text-amber">Contact page</a>
+    </div>
+  </div>
+
+  {/* Bottom bar */}
+  <div class="border-t border-white/10">
+    <div class="mx-auto flex max-w-7xl flex-col items-start justify-between gap-3 px-5 py-6 text-xs text-ash sm:flex-row sm:items-center">
+      <p>© {year} {s.business_name || 'The Filmage'}. All rights reserved.</p>
+      <div class="flex items-center gap-5">
+        <a href="#main" class="transition hover:text-amber">Back to top ↑</a>
+        <a href="/admin/login" class="transition hover:text-amber">Admin</a>
+      </div>
+    </div>
+  </div>
 </footer>

@@ -9,7 +9,9 @@ export type AppEnv = {
 };
 
 export function getEnv(): AppEnv {
-  const e = process.env as unknown as Partial<AppEnv>;
+  // Astro/Vite exposes .env via import.meta.env in dev; Vercel runtime uses process.env.
+  const meta = (import.meta as unknown as { env?: Record<string, string> }).env ?? {};
+  const e = { ...meta, ...process.env } as unknown as Partial<AppEnv>;
   for (const k of ['DATABASE_URL', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET', 'AUTH_SECRET'] as const) {
     if (!e[k]) throw new Error(`Missing environment variable: ${k}`);
   }

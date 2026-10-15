@@ -6,8 +6,8 @@ export const str = (f: FormData, k: string, max = 500) => String(f.get(k) ?? '')
 export const bool = (f: FormData, k: string) => f.get(k) === 'on';
 export const int = (f: FormData, k: string, d = 0) => { const n = parseInt(String(f.get(k) ?? ''), 10); return Number.isFinite(n) ? n : d; };
 
-const PUBLIC_ID = /^filmage\/[A-Za-z0-9_\-/]+$/;
-/** Accepts "publicId|w|h". Only assets uploaded into our own folder are accepted. */
+const PUBLIC_ID = /^(thefilmage|filmage)\/[A-Za-z0-9_\-/]+$/;
+/** Accepts "publicId|w|h". Only assets uploaded into our own folder are accepted (filmage/ = legacy). */
 export function asset(v: FormDataEntryValue | null) {
   const [id, w, h] = String(v ?? '').split('|');
   if (!id || !PUBLIC_ID.test(id)) return null;

@@ -8,5 +8,5 @@ export const GET: APIRoute = async ({ url }) => {
   if ((kind !== 'image' && kind !== 'video') || !FOLDERS.has(folder)) {
     return Response.json({ error: 'Bad request' }, { status: 400 });
   }
-  return Response.json(await signUpload(`filmage/${folder}`, kind));
+  return Response.json(await signUpload(`thefilmage/${folder}`, kind));
 };
