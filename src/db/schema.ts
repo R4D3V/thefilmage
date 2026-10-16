@@ -84,6 +84,7 @@ export const contactMessages = pgTable('contact_messages', {
   name: varchar('name', { length: 120 }).notNull(),
   email: varchar('email', { length: 255 }).notNull(),
   phone: varchar('phone', { length: 40 }),
+  whatsapp: varchar('whatsapp', { length: 40 }),
   company: varchar('company', { length: 120 }),
   service: varchar('service', { length: 120 }),
   budget: varchar('budget', { length: 60 }),

@@ -62,8 +62,9 @@ const field = 'mt-1 w-full bg-coal p-3 text-bone';
             {errors.email && <span role="alert" class="text-red-400">{errors.email}</span>}</label>
           <div class="grid gap-5 sm:grid-cols-2">
             <label class="block text-sm font-semibold">Phone<input name="phone" type="tel" autocomplete="tel" value={values.phone ?? ''} class={field} /></label>
-            <label class="block text-sm font-semibold">Company<input name="company" autocomplete="organization" value={values.company ?? ''} class={field} /></label>
+            <label class="block text-sm font-semibold">WhatsApp<input name="whatsapp" type="tel" autocomplete="tel" value={values.whatsapp ?? ''} placeholder="e.g. 256781504804" class={field} /></label>
           </div>
+          <label class="block text-sm font-semibold">Company<input name="company" autocomplete="organization" value={values.company ?? ''} class={field} /></label>
           <div class="grid gap-5 sm:grid-cols-2">
             <label class="block text-sm font-semibold">Service
               <select name="service" class={field}><option value="">Select…</option>{services.map((x) => <option selected={values.service === x.title}>{x.title}</option>)}</select></label>

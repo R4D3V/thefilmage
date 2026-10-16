@@ -22,7 +22,7 @@ const btn = 'border border-white/20 px-3 py-1 text-xs hover:border-amber';
           <strong>{!m.isRead && <span class="text-amber">● </span>}{m.name}</strong>
           <time class="text-ash" datetime={m.createdAt.toISOString()}>{m.createdAt.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</time>
         </div>
-        <p class="mt-1 text-sm text-ash"><a class="text-bone underline" href={`mailto:${m.email}`}>{m.email}</a>{m.phone && <> · <a href={`tel:${m.phone}`}>{m.phone}</a></>}{m.company && ` · ${m.company}`}</p>
+        <p class="mt-1 text-sm text-ash"><a class="text-bone underline" href={`mailto:${m.email}`}>{m.email}</a>{m.phone && <> · <a href={`tel:${m.phone}`}>{m.phone}</a></>}{m.whatsapp && <> · <a class="text-bone underline" href={`https://wa.me/${m.whatsapp.replace(/\D/g, '')}`} rel="noopener" target="_blank">WhatsApp: {m.whatsapp}</a></>}{m.company && ` · ${m.company}`}</p>
         <p class="mt-1 text-xs text-ash">{m.service || 'No service chosen'} · {m.budget || 'No budget given'}</p>
         <p class="mt-3 whitespace-pre-line">{m.message}</p>
         <form method="post" class="mt-4 flex gap-2"><input type="hidden" name="id" value={m.id} />

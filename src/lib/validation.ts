@@ -10,6 +10,7 @@ export const contactSchema = z.object({
   name: clean(120).pipe(z.string().min(2, 'Please enter your name')),
   email: z.email('Enter a valid email').max(255),
   phone: clean(40).optional().default(''),
+  whatsapp: clean(40).optional().default(''),
   company: clean(120).optional().default(''),
   service: clean(120).optional().default(''),
   budget: clean(60).optional().default(''),
