@@ -25,6 +25,7 @@ const ld = { '@context': 'https://schema.org', '@type': 'CreativeWork', name: p.
 <Base title={`${p.title} | The Filmage`} description={desc} image={p.coverPublicId ? img(p.coverPublicId, 1200, { h: 630 }) : undefined}>
   <script type="application/ld+json" set:html={JSON.stringify(ld)} />
   <article class="mx-auto max-w-7xl px-5 pb-24 pt-36">
+    <a href="/work" class="text-sm font-semibold text-ash hover:text-amber">← Work</a>
     <div data-hero>
       {categoryName && <p data-hero-item class="text-xs font-extrabold uppercase tracking-widest text-amber">{categoryName}</p>}
       <h1 data-hero-item class="display mt-2 text-[clamp(3rem,9vw,8rem)]">{p.title}</h1>
