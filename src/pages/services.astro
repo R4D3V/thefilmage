@@ -16,7 +16,7 @@ const items = await getDb().select().from(schema.services).where(eq(schema.servi
           <div>
             <p class="text-ash">{s.summary}</p>
             <a href={`/services/${s.slug}`} class="mt-3 inline-block text-sm font-extrabold text-amber">Learn more →</a>
-            {s.imagePublicId && <img src={img(s.imagePublicId, 640, { h: 360 })} alt="" width="640" height="360" loading="lazy" class="mt-4 w-full" />}
+            {s.imagePublicId && <img src={img(s.imagePublicId, 640, { h: 360 })} alt="" width="640" height="360" loading="lazy" class="mt-4 w-full rounded" />}
           </div>
         </li>
       ))}
