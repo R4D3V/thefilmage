@@ -57,6 +57,7 @@ Scripts: `dev`, `build`, `preview`, `lint`, `format`, `typecheck`, `db:generate`
 | `CLOUDINARY_API_SECRET` | **secret** | server only; never reaches the browser |
 | `AUTH_SECRET` | **secret** | `openssl rand -base64 48`; changing it logs everyone out |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | local only | read only by `npm run admin:create` |
+| `ADMIN_RESET_PIN` | secret | optional; enables `/admin/reset` password reset |
 
 Real `.env` / `.dev.vars` are git-ignored. Never commit them.
 

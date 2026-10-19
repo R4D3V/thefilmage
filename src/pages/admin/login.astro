@@ -8,6 +8,7 @@ import { verifyPassword } from '@/lib/password';
 import { COOKIE, cookieOptions, createSession } from '@/lib/session';
 
 let error = '';
+const resetDone = Astro.url.searchParams.get('reset') === '1';
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
   const p = z.object({ email: z.email().max(255), password: z.string().min(1).max(200) })
@@ -31,8 +32,10 @@ if (Astro.request.method === 'POST') {
   <form method="post" class="w-full max-w-sm space-y-4">
     <img src="/logo-sm.png" alt="The Filmage" width="160" height="73" class="mx-auto h-16 w-auto" />
     {error && <p role="alert" class="text-sm text-red-400">{error}</p>}
+    {resetDone && <p role="status" class="text-sm text-green-400">Password updated. Sign in below.</p>}
     <label class="block text-sm">Email<input name="email" type="email" required autocomplete="username" class="mt-1 w-full bg-coal p-3" /></label>
     <label class="block text-sm">Password<input name="password" type="password" required autocomplete="current-password" class="mt-1 w-full bg-coal p-3" /></label>
     <button class="w-full bg-amber p-3 font-extrabold text-ink">Sign in</button>
+    <p class="text-center text-sm"><a class="text-ash hover:text-bone" href="/admin/reset">Forgot password?</a></p>
   </form>
 </body></html>

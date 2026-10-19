@@ -6,6 +6,7 @@ export type AppEnv = {
   CLOUDINARY_API_KEY: string;
   CLOUDINARY_API_SECRET: string;
   AUTH_SECRET: string;
+  ADMIN_RESET_PIN?: string;
 };
 
 export function getEnv(): AppEnv {

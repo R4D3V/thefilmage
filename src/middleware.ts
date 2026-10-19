@@ -4,8 +4,9 @@ import { getDb, schema } from '@/db/client';
 import { getEnv } from '@/lib/env';
 import { COOKIE, readSession } from '@/lib/session';
 
+const RESET_PATHS = new Set(['/admin/reset', '/admin/reset-password', '/admin/forgot', '/admin/forgot-password']);
 const isProtected = (p: string) =>
-  (p.startsWith('/admin') && p !== '/admin/login') || p.startsWith('/api/admin');
+  (p.startsWith('/admin') && p !== '/admin/login' && !RESET_PATHS.has(p)) || p.startsWith('/api/admin');
 
 export const onRequest = defineMiddleware(async (ctx, next) => {
   const { pathname } = ctx.url;
