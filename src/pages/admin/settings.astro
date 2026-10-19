@@ -9,7 +9,7 @@ const TEXT = { business_name: 120, tagline: 160, email: 255, phone: 40, whatsapp
   hero_heading: 160, hero_description: 500, seo_title: 70, seo_description: 200,
   about_intro: 1500, mission: 600, philosophy: 1000, team: 1000, stats: 500 } as const;
 const AREAS = ['address', 'hero_description', 'seo_description', 'about_intro', 'mission', 'philosophy', 'team', 'stats'] as const;
-const IMAGES = ['logo_public_id', 'favicon_public_id', 'og_image_public_id'] as const;
+const IMAGES = ['logo_public_id', 'favicon_public_id'] as const;
 const VIDEO = 'hero_video_public_id';
 const isUrl = (v: string) => { try { return ['http:', 'https:'].includes(new URL(v).protocol); } catch { return false; } };
 
@@ -44,7 +44,7 @@ const one = (k: string) => (s[k] ? [{ id: s[k]! }] : []);
     ))}
     <Uploader name="logo_public_id" kind="image" folder="settings" label="Logo (leave empty to use the default)" values={one('logo_public_id')} />
     <Uploader name="favicon_public_id" kind="image" folder="settings" label="Favicon (square PNG)" values={one('favicon_public_id')} />
-    <Uploader name="og_image_public_id" kind="image" folder="settings" label="Open Graph image (1200×630)" values={one('og_image_public_id')} />
+
     <Uploader name="hero_video_public_id" kind="video" folder="settings" label="Home hero background video" values={one('hero_video_public_id')} />
     <button class="bg-amber px-8 py-3 font-extrabold text-ink">Save settings</button>
   </form>

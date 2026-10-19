@@ -8,7 +8,7 @@ import { img } from '@/lib/cloudinary';
 
 interface Props { title?: string; description?: string; image?: string | undefined; path?: string; }
 const s = await getSettings();
-const { title = s.seo_title, description = s.seo_description, image = s.og_image_public_id ? img(s.og_image_public_id, 1200, { h: 630 }) : undefined, path = Astro.url.pathname } = Astro.props;
+const { title = s.seo_title, description = s.seo_description, image = s.logo_public_id ? img(s.logo_public_id, 1200, { h: 630 }) : undefined, path = Astro.url.pathname } = Astro.props;
 const logo = s.logo_public_id ? img(s.logo_public_id, 320) : '/logo-sm.png';
 const favicon = s.favicon_public_id ? img(s.favicon_public_id, 64, { h: 64 }) : '/logo-sm.png';
 const canonical = new URL(path, Astro.site).href;
